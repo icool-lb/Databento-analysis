@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>GC Gold Flow - Databento Mobile</title>
+  <style>
+    :root{
+      --bg:#070b12;--panel:#101827;--panel2:#131f32;--text:#e9f0fb;--muted:#9fb0c7;
+      --green:#30d158;--red:#ff453a;--amber:#ffd60a;--blue:#64d2ff;--line:#24344f;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;background:radial-gradient(circle at top,#15243b 0%,#070b12 42%,#05070b 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-height:100vh}
+    .app{width:min(980px,100%);margin:auto;padding:14px 12px 86px}
+    header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+    h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.2px}
+    .tag{font-size:12px;color:var(--muted);margin-top:3px}
+    .status{padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(16,24,39,.82);font-size:12px;white-space:nowrap}
+    .ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}.info{color:var(--blue)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
+    .card{background:linear-gradient(180deg,rgba(19,31,50,.96),rgba(11,17,28,.96));border:1px solid var(--line);border-radius:18px;padding:13px;box-shadow:0 8px 30px rgba(0,0,0,.22)}
+    .label{font-size:12px;color:var(--muted);margin-bottom:5px}.value{font-size:24px;font-weight:850;line-height:1.05}.small{font-size:12px;color:var(--muted);line-height:1.55}
+    .verdict{font-size:24px;font-weight:900;margin:2px 0 6px}.bar{height:10px;border-radius:999px;background:#1d2a40;overflow:hidden;border:1px solid #2a3d5b}.bar>div{height:100%;width:50%;background:linear-gradient(90deg,var(--red),var(--amber),var(--green));transition:.25s}
+    button,input,select{font:inherit}button{border:0;border-radius:16px;padding:13px 14px;font-weight:850;color:#06101e;background:linear-gradient(180deg,#75ddff,#2fb8ff);box-shadow:0 10px 22px rgba(47,184,255,.22);width:100%}button.secondary{background:#17253b;color:var(--text);border:1px solid var(--line);box-shadow:none}button.danger{background:#3a1720;color:#ffd8dc;border:1px solid #6d2430;box-shadow:none}button:disabled{opacity:.55}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+    input,select{width:100%;border:1px solid var(--line);background:#0c1422;color:var(--text);border-radius:14px;padding:12px;outline:none}
+    .mono{direction:ltr;text-align:left;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;white-space:pre-wrap;overflow:auto;max-height:260px;background:#060a10;border:1px solid #18243a;border-radius:14px;padding:10px;color:#cbd7e8}
+    .pill{display:inline-flex;gap:6px;align-items:center;padding:6px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;margin:3px 3px 0 0;background:#0b1320}
+    .table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:7px;border-bottom:1px solid #1e2d45;text-align:right}.table th{color:var(--muted);font-weight:700}.ltr{direction:ltr;text-align:left}.footer{position:fixed;left:0;right:0;bottom:0;background:rgba(5,8,13,.92);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1.4fr .9fr .9fr;gap:8px;max-width:980px;margin:auto}
+    @media(min-width:720px){.grid{grid-template-columns:repeat(4,1fr)}.full{grid-column:1/-1}.half{grid-column:span 2}.app{padding-bottom:96px}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div><h1>Databento Gold Flow</h1><div class="tag">GC Futures radar لتأكيد صفقات XAUUSD من الهاتف</div></div>
+      <div id="status" class="status warn">غير متصل</div>
+    </header>
+
+    <section class="card full">
+      <div class="label">إعداد سريع</div>
+      <div class="row3">
+        <input id="symbol" value="GC.FUT" placeholder="GC.FUT" />
+        <select id="stype"><option value="parent">parent</option><option value="raw_symbol">raw_symbol</option><option value="continuous">continuous</option></select>
+        <input id="seconds" value="8" inputmode="numeric" placeholder="8 sec" />
+      </div>
+      <div class="row">
+        <button id="scanBtn">فحص الآن</button>
+        <button id="autoBtn" class="secondary">Auto كل 20ث: OFF</button>
+      </div>
+      <div class="small" style="margin-top:10px">لا تضع مفتاح Databento هنا. المفتاح يوضع في Vercel Environment Variable باسم <b>DATABENTO_API_KEY</b>.</div>
+    </section>
+
+    <section class="grid" style="margin-top:10px">
+      <div class="card half"><div class="label">القراءة</div><div id="verdict" class="verdict info">WAIT</div><div id="note" class="small">اضغط فحص الآن.</div></div>
+      <div class="card"><div class="label">آخر سعر GC</div><div id="lastPrice" class="value">--</div><div id="priceChange" class="small">Δ --</div></div>
+      <div class="card"><div class="label">Delta عقود</div><div id="delta" class="value">--</div><div id="pressure" class="small">ضغط --%</div></div>
+      <div class="card"><div class="label">Volume</div><div id="volume" class="value">--</div><div id="trades" class="small">Trades --</div></div>
+      <div class="card full">
+        <div class="label">Buy/Sell Pressure</div>
+        <div class="bar"><div id="pressureBar"></div></div>
+        <div class="row" style="margin-top:9px">
+          <div><span class="pill">Buy Qty: <b id="buyQty">--</b></span></div>
+          <div><span class="pill">Sell Qty: <b id="sellQty">--</b></span></div>
+        </div>
+      </div>
+      <div class="card half"><div class="label">Big Trades</div><table class="table" id="bigTrades"><tr><th>Side</th><th>Size</th><th>Price</th><th>Time</th></tr></table></div>
+      <div class="card half"><div class="label">أفضل عقد/Instrument داخل GC.FUT</div><div id="topInstrument" class="small">--</div></div>
+      <div class="card full"><div class="label">Raw API Response</div><pre id="raw" class="mono">{}</pre></div>
+    </section>
+  </main>
+
+  <nav class="footer">
+    <button id="scanBottom">فحص</button>
+    <button id="copyBtn" class="secondary">نسخ</button>
+    <button id="clearBtn" class="danger">مسح</button>
+  </nav>
+
+<script>
+const $ = id => document.getElementById(id);
+let auto = false, timer = null, lastPayload = null;
+function fmt(n, d=2){ if(n===null||n===undefined||Number.isNaN(Number(n))) return '--'; return Number(n).toLocaleString('en-US',{maximumFractionDigits:d, minimumFractionDigits:d}); }
+function cls(el, c){ el.className = c; }
+function setStatus(text, kind='warn'){ $('status').textContent=text; $('status').className='status '+kind; }
+function setVerdict(v){
+  const el=$('verdict'); el.textContent=v || 'WAIT';
+  let kind='info';
+  if((v||'').includes('BUY')) kind='ok';
+  if((v||'').includes('SELL')) kind='bad';
+  if((v||'').includes('ABSORPTION') || (v||'').includes('WAIT')) kind='warn';
+  el.className='verdict '+kind;
+}
+function render(data){
+  lastPayload=data;
+  $('raw').textContent = JSON.stringify(data,null,2);
+  if(!data.ok){ setStatus('خطأ API', 'bad'); setVerdict('ERROR'); $('note').textContent=data.error || 'فشل الاتصال'; return; }
+  setStatus('متصل ' + (data.latency_ms||'') + 'ms', 'ok');
+  setVerdict(data.verdict);
+  $('note').textContent = data.note || '';
+  $('lastPrice').textContent = fmt(data.last_price, 1);
+  $('priceChange').textContent = 'Δ ' + fmt(data.price_change, 1) + ' | ' + (data.symbol || 'GC');
+  $('delta').textContent = (data.delta>0?'+':'') + fmt(data.delta,0);
+  $('pressure').textContent = 'ضغط ' + fmt(data.pressure_pct,1) + '%';
+  $('volume').textContent = fmt(data.volume,0);
+  $('trades').textContent = 'Trades ' + fmt(data.trade_count,0);
+  $('buyQty').textContent = fmt(data.buy_qty,0);
+  $('sellQty').textContent = fmt(data.sell_qty,0);
+  const pct = Math.max(0, Math.min(100, 50 + (Number(data.pressure_pct)||0)/2));
+  $('pressureBar').style.width = pct + '%';
+  $('topInstrument').innerHTML = (data.top_instruments||[]).map(x => `<span class="pill ltr">${x.instrument_id}: vol ${x.volume}, Δ ${x.delta}</span>`).join('') || '--';
+  const rows = ['<tr><th>Side</th><th>Size</th><th>Price</th><th>Time</th></tr>'];
+  (data.big_trades||[]).slice(-10).reverse().forEach(t => rows.push(`<tr><td>${t.side}</td><td>${t.size}</td><td>${fmt(t.price,1)}</td><td class="ltr">${t.time||''}</td></tr>`));
+  $('bigTrades').innerHTML = rows.join('');
+}
+async function scan(){
+  const btn=$('scanBtn'), b2=$('scanBottom');
+  btn.disabled=true; b2.disabled=true; setStatus('يفحص...', 'warn');
+  try{
+    const q = new URLSearchParams({symbol:$('symbol').value.trim() || 'GC.FUT', stype:$('stype').value, seconds:$('seconds').value || '8'});
+    const res = await fetch('/api/gold?'+q.toString(), {cache:'no-store'});
+    const data = await res.json();
+    render(data);
+  }catch(e){
+    render({ok:false,error:String(e)});
+  }finally{ btn.disabled=false; b2.disabled=false; }
+}
+$('scanBtn').onclick=scan; $('scanBottom').onclick=scan;
+$('autoBtn').onclick=()=>{
+  auto=!auto; $('autoBtn').textContent = 'Auto كل 20ث: ' + (auto?'ON':'OFF');
+  if(timer) clearInterval(timer);
+  if(auto){ scan(); timer=setInterval(scan,20000); }
+};
+$('copyBtn').onclick=()=>{ navigator.clipboard.writeText(JSON.stringify(lastPayload||{},null,2)); setStatus('تم النسخ', 'info'); };
+$('clearBtn').onclick=()=>{ lastPayload=null; $('raw').textContent='{}'; setStatus('غير متصل','warn'); setVerdict('WAIT'); };
+</script>
+</body>
+</html>

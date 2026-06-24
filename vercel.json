@@ -1,8 +1,3 @@
 {
-  "version": 2,
-  "functions": {
-    "api/gold.py": {
-      "maxDuration": 15
-    }
-  }
+  "version": 2
 }
